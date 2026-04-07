@@ -321,6 +321,18 @@ class DgsGraphQLMetricsInstrumentation(
             this.timerSample?.stop(timer.register(this.registry))
         }
 
+        fun getOperation(): String = operationValue?.name ?: TagUtils.TAG_VALUE_NONE
+        fun getTagOperation(): Tag = Tag.of(
+            GqlTag.OPERATION.key,
+            getOperation(),
+        )
+
+        fun getOperationName(): String = operationNameValue ?: TagUtils.TAG_VALUE_UNKNOWN
+        fun getLimitedTagOperationName(): Optional<Tag> = limitedTagMetricResolver.tag(
+            GqlTag.OPERATION_NAME.key,
+            getOperationName(),
+        )
+
         @Internal
         fun tags(): Iterable<Tag> {
             val tags = mutableListOf<Tag>()
@@ -329,17 +341,8 @@ class DgsGraphQLMetricsInstrumentation(
                     GqlTag.QUERY_COMPLEXITY.key,
                     queryComplexityValue?.toString() ?: TagUtils.TAG_VALUE_NONE,
                 )
-            tags +=
-                Tag.of(
-                    GqlTag.OPERATION.key,
-                    operationValue?.name ?: TagUtils.TAG_VALUE_NONE,
-                )
-
-            tags +=
-                limitedTagMetricResolver.tags(
-                    GqlTag.OPERATION_NAME.key,
-                    operationNameValue ?: TagUtils.TAG_VALUE_ANONYMOUS,
-                )
+            tags += getTagOperation()
+            getLimitedTagOperationName().getOrNull()?.let { tags += it }
 
             tags +=
                 limitedTagMetricResolver.tags(
